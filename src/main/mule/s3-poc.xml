@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:s3="http://www.mulesoft.org/schema/mule/s3"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+		http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd
+		http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+	<http:listener-config name="HTTP_Listener_config"
+		doc:name="HTTP Listener config"
+		doc:id="6de01499-fb13-47df-a7ed-5df590ef1fe0">
+		<http:listener-connection host="0.0.0.0"
+			port="8081" />
+	</http:listener-config>
+
+	<s3:config name="Amazon_S3_Configuration"
+		doc:name="Amazon S3 Configuration"
+		doc:id="2e325918-355c-46df-88ad-e6d2c1590c19">
+		<s3:connection accessKey="not-used" secretKey="not-used"
+			tryDefaultAWSCredentialsProviderChain="true" region="us-gov-west-1"
+			customServiceEndpoint="https://s3.us-gov-west-1.amazonaws.com" />
+	</s3:config>
+	<flow name="s3-recursive-list-flow"
+		doc:id="a0db879b-1e5a-4af9-bc48-e2b0fa6deb8e">
+		<http:listener doc:name="Listener"
+			config-ref="HTTP_Listener_config" path="/list-files" />
+
+		<logger level="INFO" doc:name="Log Start"
+			message="Starting recursive S3 bucket retrieval..." />
+
+		<s3:list-objects doc:name="List Objects"
+			config-ref="Amazon_S3_Configuration" bucketName="orm-doc-sf-test"/>
+
+		<!-- <ee:transform doc:name="Transform to JSON Summary"> -->
+		<!-- <ee:message> -->
+		<!-- <ee:set-payload><![CDATA[%dw 2.0 -->
+		<!-- output application/json -->
+		<!-- -&#45;&#45; -->
+		<!-- payload map (object, index) -> { -->
+		<!-- fileName: object.key, -->
+		<!-- sizeBytes: object.size, -->
+		<!-- lastModified: object.lastModified -->
+		<!-- }]]></ee:set-payload> -->
+		<!-- </ee:message> -->
+		<!-- </ee:transform> -->
+		<ee:transform doc:name="Transform to JSON Summary">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+
+		<logger level="INFO" doc:name="Log End"
+			message="Successfully retrieved and formatted S3 file list." />
+	</flow>
+</mule>
